@@ -255,7 +255,7 @@ function ProfilePage({ state, reset }: { state: LearningState; reset: () => void
       <div className="profile-card">
         <div className="avatar">TF</div>
         <h2>통신 입문자</h2>
-        <p>GitHub Demo 사용자</p>
+        <p>신입 4개월차</p>
         <span className="level-badge">LEVEL {level}</span>
       </div>
 
