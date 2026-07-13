@@ -55,6 +55,12 @@ function LearnPage({
   setState: (s: LearningState) => void;
 }) {
   const [selected, setSelected] = useState<Term | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('전체');
+
+  const filteredTerms = useMemo(() => {
+    if (selectedCategory === '전체') return terms;
+    return terms.filter((term) => term.category === selectedCategory);
+  }, [selectedCategory]);
 
   const complete = (id: string) => {
     if (state.completedTermIds.includes(id)) return;
@@ -86,10 +92,19 @@ function LearnPage({
   return (
     <>
       <div className="chip-row">
-        {categories.slice(0, 7).map((c) => <span className="chip" key={c}>{c}</span>)}
+        {['전체', ...categories].map((category) => (
+          <button
+            type="button"
+            className={`chip ${selectedCategory === category ? 'active' : ''}`}
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
       </div>
       <section className="card-list">
-        {terms.map((term) => {
+        {filteredTerms.map((term) => {
           const done = state.completedTermIds.includes(term.id);
           return (
             <button className="term-card" key={term.id} onClick={() => setSelected(term)}>
