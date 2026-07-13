@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Copy, RotateCcw, Send, Sparkles, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent, PointerEvent } from 'react';
+import { Check, Copy, GripVertical, RotateCcw, Send, Sparkles, Trash2 } from 'lucide-react';
 import { BottomNav, Header, ProgressBar } from './components';
 import { callFlow, categories, suggestedQuestions, terms } from './data';
 import { getMockAnswer } from './mockAi';
@@ -129,6 +130,9 @@ function BlocksPage({
   const shuffled = useMemo(() => [...callFlow].sort(() => Math.random() - 0.5), []);
   const [blocks, setBlocks] = useState(shuffled);
   const [result, setResult] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const draggingIdRef = useRef<string | null>(null);
+  const lastOverIdRef = useRef<string | null>(null);
 
   const move = (index: number, direction: -1 | 1) => {
     const target = index + direction;
@@ -137,6 +141,63 @@ function BlocksPage({
     [next[index], next[target]] = [next[target], next[index]];
     setBlocks(next);
     setResult(null);
+  };
+
+  const moveBlock = (activeId: string, overId: string) => {
+    setBlocks((current) => {
+      const from = current.findIndex((block) => block.id === activeId);
+      const to = current.findIndex((block) => block.id === overId);
+      if (from < 0 || to < 0 || from === to) return current;
+
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+    setResult(null);
+  };
+
+  const startDrag = (event: PointerEvent<HTMLButtonElement>, id: string) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    draggingIdRef.current = id;
+    lastOverIdRef.current = null;
+    setDraggingId(id);
+    setResult(null);
+  };
+
+  const dragMove = (event: PointerEvent<HTMLButtonElement>) => {
+    const activeId = draggingIdRef.current;
+    if (!activeId) return;
+
+    event.preventDefault();
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const overItem = target?.closest<HTMLElement>('[data-block-id]');
+    const overId = overItem?.dataset.blockId;
+
+    if (!overId || overId === activeId || overId === lastOverIdRef.current) return;
+    moveBlock(activeId, overId);
+    lastOverIdRef.current = overId;
+  };
+
+  const endDrag = (event: PointerEvent<HTMLButtonElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    draggingIdRef.current = null;
+    lastOverIdRef.current = null;
+    setDraggingId(null);
+  };
+
+  const handleKeyMove = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      move(index, -1);
+    }
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      move(index, 1);
+    }
   };
 
   const submit = () => {
@@ -160,18 +221,32 @@ function BlocksPage({
       <div className="question-card">
         <span className="pill">순서 조립</span>
         <h2>음성통화를 발신하고 정상 연결 여부를 확인하는 순서를 완성하세요.</h2>
-        <p>화살표 버튼으로 블록의 위치를 바꿔보세요.</p>
+        <p>오른쪽 손잡이를 누른 채 위아래로 끌어 순서를 바꿔보세요.</p>
       </div>
 
       <div className="block-list">
         {blocks.map((block, index) => (
-          <div className="block-item" key={block.id}>
+          <div
+            className={`block-item ${draggingId === block.id ? 'dragging' : ''}`}
+            data-block-id={block.id}
+            key={block.id}
+          >
             <span className="block-number">{index + 1}</span>
             <p>{block.label}</p>
-            <div className="block-actions">
-              <button aria-label="위로 이동" onClick={() => move(index, -1)}><ArrowUp size={17}/></button>
-              <button aria-label="아래로 이동" onClick={() => move(index, 1)}><ArrowDown size={17}/></button>
-            </div>
+            <button
+              type="button"
+              className="drag-handle"
+              aria-label={`${index + 1}번 블록 순서 이동`}
+              aria-pressed={draggingId === block.id}
+              title="누른 채 위아래로 이동"
+              onPointerDown={(event) => startDrag(event, block.id)}
+              onPointerMove={dragMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              onKeyDown={(event) => handleKeyMove(event, index)}
+            >
+              <GripVertical size={20}/>
+            </button>
           </div>
         ))}
       </div>
