@@ -1,5 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, Copy, RotateCcw, Send, Sparkles, Trash2 } from 'lucide-react';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Check, Copy, GripVertical, RotateCcw, Send, Sparkles, Trash2 } from 'lucide-react';
 import { BottomNav, Header, ProgressBar } from './components';
 import { callFlow, categories, suggestedQuestions, terms } from './data';
 import { getMockAnswer } from './mockAi';
@@ -55,6 +73,12 @@ function LearnPage({
   setState: (s: LearningState) => void;
 }) {
   const [selected, setSelected] = useState<Term | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('전체');
+
+  const filteredTerms = useMemo(() => {
+    if (selectedCategory === '전체') return terms;
+    return terms.filter((term) => term.category === selectedCategory);
+  }, [selectedCategory]);
 
   const complete = (id: string) => {
     if (state.completedTermIds.includes(id)) return;
@@ -86,10 +110,19 @@ function LearnPage({
   return (
     <>
       <div className="chip-row">
-        {categories.slice(0, 7).map((c) => <span className="chip" key={c}>{c}</span>)}
+        {['전체', ...categories].map((category) => (
+          <button
+            type="button"
+            className={`chip ${selectedCategory === category ? 'active' : ''}`}
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+          >
+            {category}
+          </button>
+        ))}
       </div>
       <section className="card-list">
-        {terms.map((term) => {
+        {filteredTerms.map((term) => {
           const done = state.completedTermIds.includes(term.id);
           return (
             <button className="term-card" key={term.id} onClick={() => setSelected(term)}>
@@ -104,6 +137,44 @@ function LearnPage({
   );
 }
 
+function SortableBlock({
+  block,
+  index,
+}: {
+  block: (typeof callFlow)[number];
+  index: number;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`block-item ${isDragging ? 'dragging' : ''}`}
+      {...attributes}
+      {...listeners}
+    >
+      <span className="block-number">{index + 1}</span>
+      <p>{block.label}</p>
+      <span className="drag-handle" aria-hidden="true">
+        <GripVertical size={20}/>
+      </span>
+    </div>
+  );
+}
+
 function BlocksPage({
   state,
   setState,
@@ -115,12 +186,34 @@ function BlocksPage({
   const [blocks, setBlocks] = useState(shuffled);
   const [result, setResult] = useState<string | null>(null);
 
-  const move = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= blocks.length) return;
-    const next = [...blocks];
-    [next[index], next[target]] = [next[target], next[index]];
-    setBlocks(next);
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 180,
+        tolerance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return;
+
+    setBlocks((currentBlocks) => {
+      const oldIndex = currentBlocks.findIndex((block) => block.id === active.id);
+      const newIndex = currentBlocks.findIndex((block) => block.id === over.id);
+
+      if (oldIndex === -1 || newIndex === -1) return currentBlocks;
+      return arrayMove(currentBlocks, oldIndex, newIndex);
+    });
+
     setResult(null);
   };
 
@@ -145,21 +238,29 @@ function BlocksPage({
       <div className="question-card">
         <span className="pill">순서 조립</span>
         <h2>음성통화를 발신하고 정상 연결 여부를 확인하는 순서를 완성하세요.</h2>
-        <p>화살표 버튼으로 블록의 위치를 바꿔보세요.</p>
+        <p>블록을 누른 채 위아래로 끌고, 원하는 위치에서 놓아보세요.</p>
       </div>
 
-      <div className="block-list">
-        {blocks.map((block, index) => (
-          <div className="block-item" key={block.id}>
-            <span className="block-number">{index + 1}</span>
-            <p>{block.label}</p>
-            <div className="block-actions">
-              <button aria-label="위로 이동" onClick={() => move(index, -1)}><ArrowUp size={17}/></button>
-              <button aria-label="아래로 이동" onClick={() => move(index, 1)}><ArrowDown size={17}/></button>
-            </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={blocks.map((block) => block.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="block-list">
+            {blocks.map((block, index) => (
+              <SortableBlock
+                key={block.id}
+                block={block}
+                index={index}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       {result && <div className="result-box">{result}</div>}
       <div className="button-row">
