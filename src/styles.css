@@ -471,6 +471,14 @@ button {
   white-space: pre-line;
 }
 
+
+body.block-dragging-active {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior: contain;
+}
+
 /* =========================================================
    12. Quiz / blocks
    ========================================================= */
@@ -503,7 +511,7 @@ button {
   box-shadow: 0 4px 12px rgba(52, 60, 100, 0.03);
 
   cursor: grab;
-  touch-action: manipulation;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   will-change: transform;

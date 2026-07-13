@@ -1,22 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, Copy, GripVertical, RotateCcw, Send, Sparkles, Trash2 } from 'lucide-react';
 import { BottomNav, Header, ProgressBar } from './components';
 import { callFlow, categories, suggestedQuestions, terms } from './data';
@@ -137,44 +119,6 @@ function LearnPage({
   );
 }
 
-function SortableBlock({
-  block,
-  index,
-}: {
-  block: (typeof callFlow)[number];
-  index: number;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: block.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`block-item ${isDragging ? 'dragging' : ''}`}
-      {...attributes}
-      {...listeners}
-    >
-      <span className="block-number">{index + 1}</span>
-      <p>{block.label}</p>
-      <span className="drag-handle" aria-hidden="true">
-        <GripVertical size={20}/>
-      </span>
-    </div>
-  );
-}
-
 function BlocksPage({
   state,
   setState,
@@ -185,37 +129,72 @@ function BlocksPage({
   const shuffled = useMemo(() => [...callFlow].sort(() => Math.random() - 0.5), []);
   const [blocks, setBlocks] = useState(shuffled);
   const [result, setResult] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const dragRef = useRef<{ id: string; pointerId: number } | null>(null);
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 180,
-        tolerance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const startDrag = (
+    event: React.PointerEvent<HTMLDivElement>,
+    id: string,
+  ) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return;
+    dragRef.current = {
+      id,
+      pointerId: event.pointerId,
+    };
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDraggingId(id);
+    setResult(null);
+    document.body.classList.add('block-dragging-active');
+  };
+
+  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragging = dragRef.current;
+    if (!dragging || dragging.pointerId !== event.pointerId) return;
+
+    event.preventDefault();
+
+    const target = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>('[data-block-id]');
+
+    const targetId = target?.dataset.blockId;
+    if (!targetId || targetId === dragging.id) return;
 
     setBlocks((currentBlocks) => {
-      const oldIndex = currentBlocks.findIndex((block) => block.id === active.id);
-      const newIndex = currentBlocks.findIndex((block) => block.id === over.id);
+      const oldIndex = currentBlocks.findIndex((block) => block.id === dragging.id);
+      const newIndex = currentBlocks.findIndex((block) => block.id === targetId);
 
-      if (oldIndex === -1 || newIndex === -1) return currentBlocks;
-      return arrayMove(currentBlocks, oldIndex, newIndex);
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) {
+        return currentBlocks;
+      }
+
+      const nextBlocks = [...currentBlocks];
+      const [movedBlock] = nextBlocks.splice(oldIndex, 1);
+      nextBlocks.splice(newIndex, 0, movedBlock);
+      return nextBlocks;
     });
-
-    setResult(null);
   };
+
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragging = dragRef.current;
+    if (!dragging || dragging.pointerId !== event.pointerId) return;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    dragRef.current = null;
+    setDraggingId(null);
+    document.body.classList.remove('block-dragging-active');
+  };
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('block-dragging-active');
+    };
+  }, []);
 
   const submit = () => {
     const correct = blocks.filter((b, i) => b.id === callFlow[i].id).length;
@@ -241,26 +220,26 @@ function BlocksPage({
         <p>블록을 누른 채 위아래로 끌고, 원하는 위치에서 놓아보세요.</p>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={blocks.map((block) => block.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="block-list">
-            {blocks.map((block, index) => (
-              <SortableBlock
-                key={block.id}
-                block={block}
-                index={index}
-              />
-            ))}
+      <div className="block-list">
+        {blocks.map((block, index) => (
+          <div
+            className={`block-item ${draggingId === block.id ? 'dragging' : ''}`}
+            data-block-id={block.id}
+            key={block.id}
+            onPointerDown={(event) => startDrag(event, block.id)}
+            onPointerMove={moveDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            aria-grabbed={draggingId === block.id}
+          >
+            <span className="block-number">{index + 1}</span>
+            <p>{block.label}</p>
+            <span className="drag-handle" aria-hidden="true">
+              <GripVertical size={20}/>
+            </span>
           </div>
-        </SortableContext>
-      </DndContext>
+        ))}
+      </div>
 
       {result && <div className="result-box">{result}</div>}
       <div className="button-row">
