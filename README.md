@@ -1,6 +1,6 @@
 # TestFlow Prototype
 
-통신 QA 입문자를 위한 학습 서비스 프로토타입입니다.
+
 
 ## 기능
 
