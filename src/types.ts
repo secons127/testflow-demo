@@ -17,6 +17,7 @@ export interface ChatMessage {
 }
 
 export interface LearningState {
+  nickname: string;
   xp: number;
   completedTermIds: string[];
   solvedBlockIds: string[];
