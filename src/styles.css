@@ -1463,3 +1463,165 @@ input:focus-visible {
     border-radius: 0 0 28px 28px;
   }
 }
+
+/* 닉네임 입력 및 레벨업 팝업 */
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 19px;
+}
+
+.profile-name-row h2 {
+  margin: 0;
+}
+
+.nickname-edit-button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: #444;
+}
+
+.nickname-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  width: min(100%, 310px);
+  margin: 19px auto 0;
+}
+
+.nickname-editor input,
+.nickname-modal input {
+  min-width: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  padding: 12px 13px;
+  background: #fafaf8;
+  outline: none;
+}
+
+.nickname-editor input:focus,
+.nickname-modal input:focus {
+  border-color: #111;
+}
+
+.nickname-editor button {
+  border: 0;
+  border-radius: 12px;
+  padding: 0 15px;
+  background: #111;
+  color: white;
+  font-weight: 850;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(17, 17, 17, 0.58);
+  backdrop-filter: blur(7px);
+  animation: modal-fade-in 0.2s ease-out;
+}
+
+.app-modal {
+  width: min(100%, 390px);
+  padding: 30px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 26px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+  animation: modal-pop-in 0.26s ease-out;
+}
+
+.modal-icon,
+.celebration-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 21px;
+  background: #111;
+  color: #fff;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.celebration-icon {
+  border-radius: 50%;
+}
+
+.modal-kicker {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.app-modal h2 {
+  margin: 10px 0 8px;
+  font-size: 23px;
+  letter-spacing: -0.04em;
+}
+
+.app-modal p {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.nickname-modal input {
+  width: 100%;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.app-modal .primary {
+  margin-top: 0;
+}
+
+.app-modal .primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .app-modal {
+    animation: none;
+  }
+}
