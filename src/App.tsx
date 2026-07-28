@@ -6,6 +6,8 @@ import {
   Copy,
   ExternalLink,
   GripVertical,
+  PartyPopper,
+  Pencil,
   RotateCcw,
   Search,
   Send,
@@ -866,19 +868,77 @@ function AiPage() {
 
 function ProfilePage({
   state,
+  setState,
   reset,
 }: {
   state: LearningState;
+  setState: (s: LearningState) => void;
   reset: () => void;
 }) {
   const level = Math.floor(state.xp / 100) + 1;
   const completed = completedTermCount(state);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameInput, setNicknameInput] = useState(state.nickname);
+
+  const saveNickname = () => {
+    const nickname = nicknameInput.trim();
+
+    if (!nickname) {
+      return;
+    }
+
+    setState({ ...state, nickname });
+    setEditingNickname(false);
+  };
 
   return (
     <section>
       <div className="profile-card">
         <div className="avatar">TF</div>
-        <h2>통신 입문자</h2>
+
+        {editingNickname ? (
+          <div className="nickname-editor">
+            <input
+              autoFocus
+              maxLength={12}
+              value={nicknameInput}
+              onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                setNicknameInput(event.target.value)
+              }
+              onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                if (event.key === 'Enter') {
+                  saveNickname();
+                }
+
+                if (event.key === 'Escape') {
+                  setNicknameInput(state.nickname);
+                  setEditingNickname(false);
+                }
+              }}
+              aria-label="닉네임"
+            />
+
+            <button type="button" onClick={saveNickname}>
+              저장
+            </button>
+          </div>
+        ) : (
+          <div className="profile-name-row">
+            <h2>{state.nickname}</h2>
+            <button
+              type="button"
+              className="nickname-edit-button"
+              aria-label="닉네임 수정"
+              onClick={() => {
+                setNicknameInput(state.nickname);
+                setEditingNickname(true);
+              }}
+            >
+              <Pencil size={15} />
+            </button>
+          </div>
+        )}
+
         <p>용어부터 흐름까지 한 단계씩</p>
         <span className="level-badge">LEVEL {level}</span>
       </div>
@@ -920,6 +980,99 @@ function ProfilePage({
   );
 }
 
+function NicknameModal({
+  onSubmit,
+}: {
+  onSubmit: (nickname: string) => void;
+}) {
+  const [nickname, setNickname] = useState('');
+
+  const submit = () => {
+    const value = nickname.trim();
+
+    if (!value) {
+      return;
+    }
+
+    onSubmit(value);
+  };
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section
+        className="app-modal nickname-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nickname-modal-title"
+      >
+        <div className="modal-icon">TF</div>
+        <span className="modal-kicker">WELCOME TO TESTFLOW</span>
+        <h2 id="nickname-modal-title">사용할 닉네임을 입력해 주세요.</h2>
+        <p>마이페이지와 학습 기록에 입력한 닉네임이 표시됩니다.</p>
+
+        <input
+          autoFocus
+          maxLength={12}
+          value={nickname}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            setNickname(event.target.value)
+          }
+          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === 'Enter') {
+              submit();
+            }
+          }}
+          placeholder="닉네임 (최대 12자)"
+          aria-label="닉네임 입력"
+        />
+
+        <button
+          type="button"
+          className="primary full"
+          disabled={!nickname.trim()}
+          onClick={submit}
+        >
+          학습 시작하기
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function LevelUpModal({
+  level,
+  nickname,
+  onClose,
+}: {
+  level: number;
+  nickname: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="app-modal level-up-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="level-up-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="celebration-icon">
+          <PartyPopper size={32} />
+        </div>
+        <span className="modal-kicker">LEVEL UP</span>
+        <h2 id="level-up-title">레벨업을 축하합니다!</h2>
+        <p>
+          {nickname}님이 <b>LEVEL {level}</b>에 도달했어요.
+        </p>
+        <button type="button" className="primary full" onClick={onClose}>
+          계속 학습하기
+        </button>
+      </section>
+    </div>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState<Page>(() => {
     const hash = location.hash.replace('#/', '') as Page;
@@ -930,8 +1083,20 @@ export default function App() {
   });
 
   const [state, setState] = useState<LearningState>(loadLearningState);
+  const [levelUpLevel, setLevelUpLevel] = useState<number | null>(null);
+  const previousLevelRef = useRef(Math.floor(state.xp / 100) + 1);
 
   useEffect(() => saveLearningState(state), [state]);
+
+  useEffect(() => {
+    const currentLevel = Math.floor(state.xp / 100) + 1;
+
+    if (currentLevel > previousLevelRef.current) {
+      setLevelUpLevel(currentLevel);
+    }
+
+    previousLevelRef.current = currentLevel;
+  }, [state.xp]);
 
   const go = (next: Page) => {
     setPage(next);
@@ -978,11 +1143,25 @@ export default function App() {
         {page === 'ai' && <AiPage />}
 
         {page === 'profile' && (
-          <ProfilePage state={state} reset={reset} />
+          <ProfilePage state={state} setState={setState} reset={reset} />
         )}
       </main>
 
       <BottomNav current={page} onChange={go} />
+
+      {!state.nickname && (
+        <NicknameModal
+          onSubmit={(nickname) => setState({ ...state, nickname })}
+        />
+      )}
+
+      {levelUpLevel !== null && (
+        <LevelUpModal
+          level={levelUpLevel}
+          nickname={state.nickname}
+          onClose={() => setLevelUpLevel(null)}
+        />
+      )}
     </div>
   );
 }
