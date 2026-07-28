@@ -16,7 +16,12 @@ export function getMockAnswer(question: string): string {
   if (q.includes('evs') || q.includes('amr')) {
     return 'EVS와 AMR-WB는 모두 음성 코덱입니다. EVS는 더 넓은 조건에서 높은 음질과 효율을 목표로 하며, 지원 여부와 SDP 협상 결과를 함께 확인합니다.';
   }
-  if (q.includes('h.264') || q.includes('h264') || q.includes('h.265') || q.includes('h265')) {
+  if (
+    q.includes('h.264') ||
+    q.includes('h264') ||
+    q.includes('h.265') ||
+    q.includes('h265')
+  ) {
     return 'H.264와 H.265는 영상 압축 코덱입니다. H.265는 일반적으로 더 높은 압축 효율을 목표로 하며, SDP 지원 여부와 실제 Video Bitrate를 함께 확인합니다.';
   }
   if (q.includes('dsds') || q.includes('sim')) {

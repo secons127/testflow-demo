@@ -8,28 +8,45 @@ export const defaultLearningState: LearningState = {
   xp: 0,
   completedTermIds: [],
   solvedBlockIds: [],
+  termMistakes: {},
+  blockMistakes: {},
+  lastReviewedAt: {},
 };
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
+function isNumberRecord(value: unknown): value is Record<string, number> {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      Object.values(value).every(
+        (item) => typeof item === 'number' && Number.isFinite(item) && item >= 0,
+      ),
+  );
+}
+
+function isStringRecord(value: unknown): value is Record<string, string> {
+  return Boolean(
+    value &&
+      typeof value === 'object' &&
+      Object.values(value).every((item) => typeof item === 'string'),
+  );
+}
+
 function normalizeLearningState(value: Partial<LearningState>): LearningState {
   const completedTermIds = isStringArray(value.completedTermIds)
     ? value.completedTermIds
     : [];
-
   const solvedBlockIds = isStringArray(value.solvedBlockIds)
     ? value.solvedBlockIds
     : [];
-
   const xp =
     typeof value.xp === 'number' && Number.isFinite(value.xp) && value.xp >= 0
       ? value.xp
       : 0;
 
-  // 이전 데모 버전의 기본값(40 XP, SIP 1개 완료)이 저장되어 있으면
-  // 실제 사용자 기록이 아니라 초기 샘플 데이터이므로 0부터 시작합니다.
   const isLegacyDemoSeed =
     typeof value.nickname !== 'string' &&
     xp === 40 &&
@@ -46,18 +63,20 @@ function normalizeLearningState(value: Partial<LearningState>): LearningState {
     xp,
     completedTermIds,
     solvedBlockIds,
+    termMistakes: isNumberRecord(value.termMistakes) ? value.termMistakes : {},
+    blockMistakes: isNumberRecord(value.blockMistakes) ? value.blockMistakes : {},
+    lastReviewedAt: isStringRecord(value.lastReviewedAt)
+      ? value.lastReviewedAt
+      : {},
   };
 }
 
 export function loadLearningState(): LearningState {
   try {
     const raw = localStorage.getItem(LEARNING_KEY);
-
-    if (!raw) {
-      return { ...defaultLearningState };
-    }
-
-    return normalizeLearningState(JSON.parse(raw));
+    return raw
+      ? normalizeLearningState(JSON.parse(raw))
+      : { ...defaultLearningState };
   } catch {
     return { ...defaultLearningState };
   }

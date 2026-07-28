@@ -1,4 +1,4 @@
-export type Page = 'home' | 'learn' | 'blocks' | 'ai' | 'profile';
+export type Page = 'home' | 'learn' | 'blocks' | 'review' | 'ai' | 'profile';
 
 export interface Term {
   id: string;
@@ -8,6 +8,20 @@ export interface Term {
   simple: string;
   practical: string;
   example: string;
+}
+
+export interface QuizBlock {
+  id: string;
+  label: string;
+}
+
+export interface BlockQuiz {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  xp: number;
+  blocks: QuizBlock[];
 }
 
 export interface ChatMessage {
@@ -21,4 +35,7 @@ export interface LearningState {
   xp: number;
   completedTermIds: string[];
   solvedBlockIds: string[];
+  termMistakes: Record<string, number>;
+  blockMistakes: Record<string, number>;
+  lastReviewedAt: Record<string, string>;
 }
