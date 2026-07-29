@@ -1,3 +1,4 @@
+//블록 퀴즈 셔플
 export function shuffleItems<T>(items: readonly T[]): T[] {
   const result = [...items];
 
