@@ -88,104 +88,104 @@ export default function App() {
     window.location.hash = `/${nextPage}`;
   }, []);
 
-// 오답 블록 퀴즈를 다시 풀기
-const retryBlock = useCallback(
-  (quizId: string) => {
-    setFocusQuizId(quizId);
-    navigate('blocks');
-  },
-  [navigate],
-);
-
-// 학습 기록 초기화
-const resetWithConfirmation = () => {
-  if (
-    window.confirm(
-      '닉네임, XP, 완료 기록과 오답노트를 모두 초기화하시겠습니까?',
-    )
-  ) {
-    reset();
-    navigate('home');
-  }
-};
-
-return (
-  <div className="app-shell">
-    {/* 배경 효과 */}
-    <div className="ambient ambient-one" />
-    <div className="ambient ambient-two" />
-
-    {/* 앱의 기본 화면 */}
-    <div className="app-frame">
-      <Header title={pageTitles[page]} xp={state.xp} />
-
-      {/* 현재 page 값에 맞는 화면 표시 */}
-      <main className="page-content">
-        {page === 'home' && (
-          <HomePage state={state} go={navigate} />
-        )}
-
-        {page === 'learn' && (
-          <LearnPage
-            state={state}
-            setState={setState}
-            focusTermId={focusTermId}
-            onFocusHandled={() => setFocusTermId(null)}
-          />
-        )}
-
-        {page === 'blocks' && (
-          <BlocksPage
-            state={state}
-            setState={setState}
-            focusQuizId={focusQuizId}
-            onFocusHandled={() => setFocusQuizId(null)}
-          />
-        )}
-
-        {page === 'review' && (
-          <ReviewPage
-            state={state}
-            setState={setState}
-            retryBlock={retryBlock}
-          />
-        )}
-
-        {page === 'ai' && <AiPage />}
-
-        {page === 'profile' && (
-          <ProfilePage
-            state={state}
-            setState={setState}
-            reset={resetWithConfirmation}
-          />
-        )}
-      </main>
-
-      {/* 하단 페이지 이동 메뉴 */}
-      <BottomNav current={page} onChange={navigate} />
+  // 오답 블록 퀴즈를 다시 풀기
+  const retryBlock = useCallback(
+    (quizId: string) => {
+      setFocusQuizId(quizId);
+      navigate('blocks');
+    },
+    [navigate],
+  );
+  
+  // 학습 기록 초기화
+  const resetWithConfirmation = () => {
+    if (
+      window.confirm(
+        '닉네임, XP, 완료 기록과 오답노트를 모두 초기화하시겠습니까?',
+      )
+    ) {
+      reset();
+      navigate('home');
+    }
+  };
+  
+  return (
+    <div className="app-shell">
+      {/* 배경 효과 */}
+      <div className="ambient ambient-one" />
+      <div className="ambient ambient-two" />
+  
+      {/* 앱의 기본 화면 */}
+      <div className="app-frame">
+        <Header title={pageTitles[page]} xp={state.xp} />
+  
+        {/* 현재 page 값에 맞는 화면 표시 */}
+        <main className="page-content">
+          {page === 'home' && (
+            <HomePage state={state} go={navigate} />
+          )}
+  
+          {page === 'learn' && (
+            <LearnPage
+              state={state}
+              setState={setState}
+              focusTermId={focusTermId}
+              onFocusHandled={() => setFocusTermId(null)}
+            />
+          )}
+  
+          {page === 'blocks' && (
+            <BlocksPage
+              state={state}
+              setState={setState}
+              focusQuizId={focusQuizId}
+              onFocusHandled={() => setFocusQuizId(null)}
+            />
+          )}
+  
+          {page === 'review' && (
+            <ReviewPage
+              state={state}
+              setState={setState}
+              retryBlock={retryBlock}
+            />
+          )}
+  
+          {page === 'ai' && <AiPage />}
+  
+          {page === 'profile' && (
+            <ProfilePage
+              state={state}
+              setState={setState}
+              reset={resetWithConfirmation}
+            />
+          )}
+        </main>
+  
+        {/* 하단 페이지 이동 메뉴 */}
+        <BottomNav current={page} onChange={navigate} />
+      </div>
+  
+      {/* 닉네임이 없을 때 표시 */}
+      {!state.nickname && (
+        <NicknameModal
+          onSubmit={(nickname) =>
+            setState((current) => ({
+              ...current,
+              nickname,
+            }))
+          }
+        />
+      )}
+  
+      {/* 레벨업했을 때 표시 */}
+      {levelUpTo !== null && state.nickname && (
+        <LevelUpModal
+          level={levelUpTo}
+          nickname={state.nickname}
+          onClose={closeLevelUp}
+        />
+      )}
     </div>
-
-    {/* 닉네임이 없을 때 표시 */}
-    {!state.nickname && (
-      <NicknameModal
-        onSubmit={(nickname) =>
-          setState((current) => ({
-            ...current,
-            nickname,
-          }))
-        }
-      />
-    )}
-
-    {/* 레벨업했을 때 표시 */}
-    {levelUpTo !== null && state.nickname && (
-      <LevelUpModal
-        level={levelUpTo}
-        nickname={state.nickname}
-        onClose={closeLevelUp}
-      />
-    )}
-  </div>
-);
-
+  );
+}
