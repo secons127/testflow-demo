@@ -186,7 +186,11 @@ export function BlocksPage({
     <>
       <section className="block-intro">
         <span className="learning-kicker">TC ORDER TRAINING</span>
-        <h2>풀고 싶은 TC를 고른 뒤 절차를 순서대로 조합하세요.</h2>
+        <h2>
+        풀고 싶은 TC를 고른 뒤 절차를 순서대로
+        <br />
+        조합하세요.
+      </h2>
         <p>틀린 문제는 오답노트에 자동 저장되고 정답 순서를 바로 확인할 수 있습니다.</p>
       </section>
 
